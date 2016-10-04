@@ -1,4 +1,4 @@
-# Homework 2 - Threaded filster image
+# Homework 2 - Threaded filter image
 
 ### Description
 
