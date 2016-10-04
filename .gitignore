@@ -1,3 +1,4 @@
 src/*.o
 src/readWrite-bmp
+src/*.bmp
 output/*.bmp
