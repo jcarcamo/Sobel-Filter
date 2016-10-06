@@ -15,11 +15,16 @@
 #include <cmath>
 #include <ctime>
 #include <omp.h>
+
+#define WIDTH 3
+#define HEIGHT 3
+#define DEBUG 1
+
 using namespace std;
 
 #pragma pack(1)
 typedef struct {
-	char id[2]; 
+	char id[2];
 	int file_size;
 	int reserved;
 	int offset;
@@ -29,22 +34,171 @@ typedef struct {
 typedef struct {
 	int header_size;
 	int width;
-	int height; 
-	unsigned short int color_planes; 
-	unsigned short int color_depth; 
-	unsigned int compression; 
+	int height;
+	unsigned short int color_planes;
+	unsigned short int color_depth;
+	unsigned int compression;
 	int image_size;
 	int xresolution;
-	int yresolution; 
+	int yresolution;
 	int num_colors;
 	int num_important_colors;
 } information_type;
+
+
+int globalPrintCount = 0; //this will keep count of the times printArray is called
+//Helper function to print an array.
+void printImageArray(vector< vector<int> > &image)
+{
+	int imageRows = image.size();
+	int imageColsIndex = image[0].size();
+	cout << "print time: " << globalPrintCount << endl;
+	globalPrintCount++;
+
+	for (int i = 0; i < imageRows; i ++){
+		cout << "Row "<< i << "[ ";
+		for (int j = 0; j < imageColsIndex; j++){
+			cout << image[i][j] << "\t";
+		}
+		cout << " ]" << endl;
+	}
+	cout << endl << endl;
+}
+
+#define KERNEL_SIZE 3
+vector< vector<int> > prepareKernel(int &x, int &y, vector< vector<int> > &image)
+{
+	int imageRowsIndex = image.size() - 1;
+	int imageColsIndex = image[0].size() - 1;
+
+	vector< vector<int> > kernel (KERNEL_SIZE, vector<int>(KERNEL_SIZE,0));
+
+	if (x > 0 && y > 0 && x < imageRowsIndex && y < imageColsIndex)
+	{
+		for(int i = 0; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
+			}
+		}
+	} else if (x == 0 && y > 0 && x < imageRowsIndex && y < imageColsIndex)
+	{
+		for(int i = 1; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
+			}
+		}
+	} else if (x == 0 && y == 0 && x < imageRowsIndex && y < imageColsIndex)
+	{
+		for(int i = 1; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=1; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
+			}
+		}
+	} else if (x > 0 && y == 0 && x < imageRowsIndex && y < imageColsIndex)
+	{
+		for(int i = 0; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=1; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
+			}
+		}
+	} else if (x == imageRowsIndex && y < imageColsIndex)
+	{
+		for(int i = 0; i < KERNEL_SIZE-1; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
+			}
+		}
+	} else if (x == imageRowsIndex && y == 0)
+	{
+		for(int i = 0; i < KERNEL_SIZE-1; i++ )
+		{
+			for (int j=1; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
+			}
+		}
+	} else if (x == imageRowsIndex && y == imageColsIndex)
+	{
+		for(int i = 0; i < KERNEL_SIZE-1; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE-1; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
+			}
+		}
+	} else if (x == 0 && y == imageColsIndex)
+	{
+		for(int i = 1; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE-1; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
+			}
+		}
+	} else if (x < imageRowsIndex && y == imageColsIndex)
+	{
+		for(int i = 0; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE-1; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
+			}
+		}
+	}
+
+	return kernel;
+
+}
+
+int threshold = 20;
+int sobelFilter (int x, int y, vector< vector<int> > &image)
+{
+	//prepare data;
+	vector< vector<int> > dataToFilter = prepareKernel(x,y, image);
+
+	// printImageArray(dataToFilter);
+
+	//Sobel's algorithm is quite simple, we just add
+	//the derivatives in x and y (called gradient magnitude)
+	int x0,x1,x2,x3,x5,x6,x7,x8;
+	x0 = dataToFilter[0][0];
+	x1 = dataToFilter[0][1];
+	x2 = dataToFilter[0][2];
+	x3 = dataToFilter[1][0];
+	x5 = dataToFilter[1][2];
+	x6 = dataToFilter[2][0];
+	x7 = dataToFilter[2][1];
+	x8 = dataToFilter[2][2];
+
+	int dfdy = (x0 + 2*x1 +x2) - (x6 + 2*x7 + x8);
+	int dfdx = (x2 + 2*x5 +x8) - (x0 + 2*x3 + x6);
+
+	int gradient = abs(dfdy) + abs(dfdx);
+
+	//the actual filter:
+	if(gradient < threshold)
+	{
+		return 0;
+	} else {
+		return 255;
+	}
+}
 
 int main(int argc, char* argv[])
 {
 	header_type header;
 	information_type information;
-	string imageFileName, newImageFileName;
+	string imageFileName, newImageFileName, strThreshold;
 	unsigned char tempData[3];
 	int row, col, row_bytes, padding;
 	vector <vector <int> > data, newData;
@@ -69,6 +223,12 @@ int main(int argc, char* argv[])
 		cerr << "Does not appear to be a .bmp file.  Goodbye." << endl;
 		exit(-1);
 	}
+
+	//ask for threshold
+	cout << "threshold? ";
+	cin >> strThreshold;
+	threshold = atoi(strThreshold.c_str());
+
 	// read/compute image information
 	imageFile.read ((char *) &information, sizeof(information_type));
 	row_bytes = information.width * 3;
@@ -89,7 +249,6 @@ int main(int argc, char* argv[])
 	cout << imageFileName << ": " << information.width << " x " << information.height << endl;
 
 
-
 // pixel info is now stored in the 2D vector called 'data'
 // at this point you could, for example, print it to a file
 // your code (in any language) could then perform the image transformation
@@ -102,11 +261,9 @@ int main(int argc, char* argv[])
 	for (row=0; row < information.height; row++) {
 		newData.push_back (vector <int>());
 		for (col=0; col < information.width; col++) {
-			newData[row].push_back (data[row][col]);
+			newData[row].push_back (/*data[row][col]*/sobelFilter(row,col,data));
 		}
 	}
-
-	
 
 	// write header to new image file
 	newImageFile.write ((char *) &header, sizeof(header_type));
@@ -133,4 +290,3 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
-
