@@ -6,7 +6,7 @@
 // gw
 
 // uncomment for MSVS
-//#include "stdafx.h"
+// #include "stdafx.h"
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -14,15 +14,15 @@
 #include <vector>
 #include <cmath>
 #include <ctime>
-#include <pthread.h>
-#include <stdio.h>
+#include <omp.h>
 
-//#include <omp.h>
+#define WIDTH	3
+#define HEIGHT	3
+#define DEBUG	1
+#define KERNEL_SIZE	3
 
-#define WIDTH        3
-#define HEIGHT       3
-#define DEBUG        1
-#define NUM_THREADS  1
+int numThreads = 1;
+int threshold = 20;
 
 using namespace std;
 
@@ -67,9 +67,8 @@ void printImageArray(vector<vector<int> > &image) {
 	cout << endl << endl;
 }
 
-#define KERNEL_SIZE 3
-vector<vector<int> > prepareKernel(int &x, int &y,
-		vector<vector<int> > &image) {
+vector< vector<int> > prepareKernel(int &x, int &y, vector< vector<int> > &image)
+{
 	int imageRowsIndex = image.size() - 1;
 	int imageColsIndex = image[0].size() - 1;
 
@@ -135,8 +134,8 @@ vector<vector<int> > prepareKernel(int &x, int &y,
 
 }
 
-int threshold = 20;
-int sobelFilter(int x, int y, vector<vector<int> > &image) {
+int sobelFilter (int x, int y, vector< vector<int> > &image)
+{
 	//prepare data;
 	vector<vector<int> > dataToFilter = prepareKernel(x, y, image);
 
@@ -167,13 +166,12 @@ int sobelFilter(int x, int y, vector<vector<int> > &image) {
 	}
 }
 
-information_type information;
-vector<vector<int> > data, newData;
-int row, col;
 header_type header;
-string imageFileName, newImageFileName, strThreshold;
+information_type information;
+string imageFileName, newImageFileName;
 unsigned char tempData[3];
-int row_bytes, padding;
+int row, col, row_bytes, padding;
+vector <vector <int> > data, newData;
 ifstream imageFile;
 ofstream newImageFile;
 
@@ -187,49 +185,69 @@ void *ProcessData(void *arg) {
 
 	cout << "test for receiving an argument Limits: lower" << limits->lower_index << " higher: ";
 	cout << limits->higher_index <<  endl;
-	// this loop shows how to simply recreate the original Black-and-White image
-	for (row = 0; row < information.height; row++) {
-		newData.push_back(vector<int>());
-		for (col = 0; col < information.width; col++) {
-			//cout << "row: " << row << " - col:  " << col << endl;
-			newData[row].push_back(sobelFilter(row, col, data));
+	// read/compute image information
+	imageFile.read ((char *) &information, sizeof(information_type));
+	row_bytes = information.width * 3;
+	padding = row_bytes % 4;
+	if (padding)
+		padding = 4 - padding;
+
+	// extract image data, initialize vectors
+	for (row=0; row < information.height; row++) {
+		data.push_back (vector <int>());
+		for (col=0; col < information.width; col++) {
+			imageFile.read ((char *) tempData, 3 * sizeof(unsigned char));
+			data[row].push_back ((int) tempData[0]);
 		}
+		if (padding)
+			imageFile.read ((char *) tempData, padding * sizeof(unsigned char));
 	}
+	cout << imageFileName << ": " << information.width << " x " << information.height << endl;
+
+
+	// pixel info is now stored in the 2D vector called 'data'
+	// at this point you could, for example, print it to a file
+	// your code (in any language) could then perform the image transformation
+	// the transformed data would need to be re-inserted into an image-formatted file for display
+
+	// if you with to use this C++ skeleton program for image wrangling,
+	// insert your transformation code here...
+
 	// this loop shows how to simply recreate the original Black-and-White image
-	for (row = 0; row < information.height; row++) {
-		newData.push_back(vector<int>());
-		for (col = 0; col < information.width; col++) {
-			newData[row].push_back(sobelFilter(row, col, data));
+	for (row=0; row < information.height; row++) {
+		newData.push_back (vector <int>());
+		for (col=0; col < information.width; col++) {
+			newData[row].push_back (/*data[row][col]*/sobelFilter(row,col,data));
 		}
 	}
 
 	// write header to new image file
-	newImageFile.write((char *) &header, sizeof(header_type));
-	newImageFile.write((char *) &information, sizeof(information_type));
+	newImageFile.write ((char *) &header, sizeof(header_type));
+	newImageFile.write ((char *) &information, sizeof(information_type));
 
 	// write new image data to new image file
-	for (row = 0; row < information.height; row++) {
-		for (col = 0; col < information.width; col++) {
+	for (row=0; row < information.height; row++) {
+		for (col=0; col < information.width; col++) {
 			tempData[0] = (unsigned char) newData[row][col];
 			tempData[1] = (unsigned char) newData[row][col];
 			tempData[2] = (unsigned char) newData[row][col];
-			newImageFile.write((char *) tempData, 3 * sizeof(unsigned char));
+			newImageFile.write ((char *) tempData, 3 * sizeof(unsigned char));
 		}
 		if (padding) {
 			tempData[0] = 0;
 			tempData[1] = 0;
 			tempData[2] = 0;
-			newImageFile.write((char *) tempData,
-					padding * sizeof(unsigned char));
+			newImageFile.write ((char *) tempData, padding * sizeof(unsigned char));
 		}
 	}
-
 	cout << newImageFileName << " done." << endl;
 	imageFile.close();
 	newImageFile.close();
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
+	string strThreshold, strNumThreads;
 	// prepare files
 	cout << "Original imagefile? ";
 	cin >> imageFileName;
@@ -249,58 +267,34 @@ int main(int argc, char* argv[]) {
 		exit(-1);
 	}
 
-	//ask for threshold
-	cout << "threshold? ";
+	//Request threshold
+	cout << "Threshold? ";
 	cin >> strThreshold;
 	threshold = atoi(strThreshold.c_str());
 
-	// read/compute image information
-	imageFile.read((char *) &information, sizeof(information_type));
-	row_bytes = information.width * 3;
-	padding = row_bytes % 4;
-	if (padding)
-		padding = 4 - padding;
+	//Request number of threads
+	cout << "Number of threads? ";
+	cin >> strNumThreads;
+	numThreads = atoi(strNumThreads.c_str());
 
-	// extract image data, initialize vectors
-	for (row = 0; row < information.height; row++) {
-		data.push_back(vector<int>());
-		for (col = 0; col < information.width; col++) {
-			imageFile.read((char *) tempData, 3 * sizeof(unsigned char));
-			data[row].push_back((int) tempData[0]);
-		}
-		if (padding)
-			imageFile.read((char *) tempData, padding * sizeof(unsigned char));
-	}
-	cout << imageFileName << ": " << information.width << " x "
-			<< information.height << endl;
+	pthread_t threads[numThreads];
+	  int rc;
+	  long t;
+	  for(t=0; t<numThreads; t++){
+	    printf("In main: creating thread %ld\n", t);
+	    struct index_limits args;
+	    args.lower_index = 10;
+	    args.higher_index = 15;
 
-	// pixel info is now stored in the 2D vector called 'data'
-	// at this point you could, for example, print it to a file
-	// your code (in any language) could then perform the image transformation
-	// the transformed data would need to be re-inserted into an image-formatted file for display
+	    rc = pthread_create(&threads[t], NULL, ProcessData, (void *)&args);
+	    if (rc){
+	      printf("ERROR; return code from pthread_create() is %d\n", rc);
+	      exit(-1);
+	    }
+	  }
 
-	// if you with to use this C++ skeleton program for image wrangling,
-	// insert your transformation code here...
-
-	pthread_t threads[NUM_THREADS];
-	int rc;
-	long t;
-	for (t = 0; t < NUM_THREADS; t++) {
-		printf("In main: creating thread %ld\n", t);
-		struct index_limits args;
-		args.lower_index = 10;
-		args.higher_index = 15;
-
-		rc = pthread_create(&threads[t], NULL, ProcessData, (void *)&args);
-
-		if (rc) {
-			printf("ERROR; return code from pthread_create() is %d\n", rc);
-			exit(-1);
-		}
-	}
-
-	/* Last thing that main() should do */
-	pthread_exit(NULL);
+	  /* Last thing that main() should do */
+	  pthread_exit(NULL);
 
 	return 0;
 }
