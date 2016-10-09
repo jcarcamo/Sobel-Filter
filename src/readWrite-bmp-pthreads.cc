@@ -208,6 +208,7 @@ void *ProcessData(void *threadid)
   for (row=0; row < information.height; row++) {
   	newData.push_back (vector <int>());
   	for (col=0; col < information.width; col++) {
+			cout << "row: " << row << " - col:  " << col << endl;
   		newData[row].push_back (sobelFilter(row,col,data));
   	}
   }
