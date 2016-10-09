@@ -201,6 +201,12 @@ int sobelFilter (int x, int y, vector< vector<int> > &image)
 information_type information;
 vector <vector <int> > data, newData;
 int row, col;
+header_type header;
+string imageFileName, newImageFileName, strThreshold;
+unsigned char tempData[3];
+int row_bytes, padding;
+ifstream imageFile;
+ofstream newImageFile;
 
 void *ProcessData(void *threadid)
 {
@@ -212,19 +218,44 @@ void *ProcessData(void *threadid)
   		newData[row].push_back (sobelFilter(row,col,data));
   	}
   }
+	// this loop shows how to simply recreate the original Black-and-White image
+		for (row=0; row < information.height; row++) {
+			newData.push_back (vector <int>());
+			for (col=0; col < information.width; col++) {
+				newData[row].push_back (sobelFilter(row,col,data));
+			}
+		}
+
+		// write header to new image file
+		newImageFile.write ((char *) &header, sizeof(header_type));
+		newImageFile.write ((char *) &information, sizeof(information_type));
+
+		// write new image data to new image file
+		for (row=0; row < information.height; row++) {
+			for (col=0; col < information.width; col++) {
+				tempData[0] = (unsigned char) newData[row][col];
+				tempData[1] = (unsigned char) newData[row][col];
+				tempData[2] = (unsigned char) newData[row][col];
+				newImageFile.write ((char *) tempData, 3 * sizeof(unsigned char));
+			}
+			if (padding) {
+				tempData[0] = 0;
+				tempData[1] = 0;
+				tempData[2] = 0;
+				newImageFile.write ((char *) tempData, padding * sizeof(unsigned char));
+			}
+		}
+
+		cout << newImageFileName << " done." << endl;
+		imageFile.close();
+		newImageFile.close();
 }
 
 int main(int argc, char* argv[])
 {
-	header_type header;
-	string imageFileName, newImageFileName, strThreshold;
-	unsigned char tempData[3];
-	int row_bytes, padding;
-
 	// prepare files
 	cout << "Original imagefile? ";
 	cin >> imageFileName;
-	ifstream imageFile;
 	imageFile.open (imageFileName.c_str(), ios::binary);
 	if (!imageFile) {
 		cerr << "file not found" << endl;
@@ -232,7 +263,6 @@ int main(int argc, char* argv[])
 	}
 	cout << "New imagefile name? ";
 	cin >> newImageFileName;
-	ofstream newImageFile;
 	newImageFile.open (newImageFileName.c_str(), ios::binary);
 
 	// read file header
@@ -286,37 +316,6 @@ int main(int argc, char* argv[])
       exit(-1);
     }
   }
-
-// this loop shows how to simply recreate the original Black-and-White image
-	for (row=0; row < information.height; row++) {
-		newData.push_back (vector <int>());
-		for (col=0; col < information.width; col++) {
-			newData[row].push_back (sobelFilter(row,col,data));
-		}
-	}
-
-	// write header to new image file
-	newImageFile.write ((char *) &header, sizeof(header_type));
-	newImageFile.write ((char *) &information, sizeof(information_type));
-
-	// write new image data to new image file
-	for (row=0; row < information.height; row++) {
-		for (col=0; col < information.width; col++) {
-			tempData[0] = (unsigned char) newData[row][col];
-			tempData[1] = (unsigned char) newData[row][col];
-			tempData[2] = (unsigned char) newData[row][col];
-			newImageFile.write ((char *) tempData, 3 * sizeof(unsigned char));
-		}
-		if (padding) {
-			tempData[0] = 0;
-			tempData[1] = 0;
-			tempData[2] = 0;
-			newImageFile.write ((char *) tempData, padding * sizeof(unsigned char));
-		}
-	}
-	cout << newImageFileName << " done." << endl;
-	imageFile.close();
-	newImageFile.close();
 
   /* Last thing that main() should do */
   pthread_exit(NULL);
