@@ -15,6 +15,7 @@
 #include <cmath>
 #include <ctime>
 #include <omp.h>
+#include <chrono>
 
 #define WIDTH	3
 #define HEIGHT	3
@@ -25,6 +26,7 @@ int numThreads = 1;
 int threshold = 20;
 
 using namespace std;
+using namespace std::chrono;
 
 #pragma pack(1)
 typedef struct {
@@ -178,9 +180,11 @@ ofstream newImageFile;
 struct index_limits {
     int lower_index;
     int higher_index;
+		int threadId;
 };
 
 void *ProcessData(void *arg) {
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 	struct index_limits *limits = (struct index_limits *)arg;
 
 	cout << "test for receiving an argument Limits: lower" << limits->lower_index << " higher: ";
@@ -204,6 +208,9 @@ void *ProcessData(void *arg) {
 		}
 	}
 
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+	auto elapsed = duration_cast<microseconds>(t2-t1).count();
+	printf("Thread ID: %d - Elapsed time: %ld \n", limits->threadId, elapsed);
 	return NULL;
 }
 
@@ -281,7 +288,7 @@ int main(int argc, char* argv[])
 		} else {
 			args[t].higher_index = information.height;
 		}
-
+		args[t].threadId = t;
 
 		rc = pthread_create(&threads[t], NULL, ProcessData, (void *)&args[t]);
 		if (rc){
