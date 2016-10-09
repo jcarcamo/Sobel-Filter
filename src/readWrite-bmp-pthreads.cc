@@ -1,9 +1,14 @@
-// readWrite-bmp.cc
+// ThreadedEdgeDetection.cpp
 //
 // extracts pixel data from user-specified .bmp file
 // inserts data back into new .bmp file
 //
 // gw
+// handy paths for processing images:
+// /home/jcarcamo/Documents/GVSU/HPC/ThreadedEdgeDetection/data/yeast.bmp
+// /home/jcarcamo/Documents/GVSU/HPC/ThreadedEdgeDetection/output/yeast_processed.bmp
+// /home/jcarcamo/Documents/GVSU/HPC/ThreadedEdgeDetection/output/yeast_threaded.bmp
+
 
 // uncomment for MSVS
 // #include "stdafx.h"
@@ -16,13 +21,9 @@
 #include <ctime>
 #include <omp.h>
 
-#define WIDTH	3
-#define HEIGHT	3
-#define DEBUG	1
-#define KERNEL_SIZE	3
-
-int numThreads = 1;
-int threshold = 20;
+#define WIDTH 3
+#define HEIGHT 3
+#define DEBUG 1
 
 using namespace std;
 
@@ -32,7 +33,7 @@ typedef struct {
 	int file_size;
 	int reserved;
 	int offset;
-} header_type;
+}  header_type;
 
 #pragma pack(1)
 typedef struct {
@@ -49,17 +50,19 @@ typedef struct {
 	int num_important_colors;
 } information_type;
 
+
 int globalPrintCount = 0; //this will keep count of the times printArray is called
 //Helper function to print an array.
-void printImageArray(vector<vector<int> > &image) {
+void printImageArray(vector< vector<int> > &image)
+{
 	int imageRows = image.size();
 	int imageColsIndex = image[0].size();
 	cout << "print time: " << globalPrintCount << endl;
 	globalPrintCount++;
 
-	for (int i = 0; i < imageRows; i++) {
-		cout << "Row " << i << "[ ";
-		for (int j = 0; j < imageColsIndex; j++) {
+	for (int i = 0; i < imageRows; i ++){
+		cout << "Row "<< i << "[ ";
+		for (int j = 0; j < imageColsIndex; j++){
 			cout << image[i][j] << "\t";
 		}
 		cout << " ]" << endl;
@@ -67,65 +70,93 @@ void printImageArray(vector<vector<int> > &image) {
 	cout << endl << endl;
 }
 
+#define KERNEL_SIZE 3
 vector< vector<int> > prepareKernel(int &x, int &y, vector< vector<int> > &image)
 {
 	int imageRowsIndex = image.size() - 1;
 	int imageColsIndex = image[0].size() - 1;
 
-	vector<vector<int> > kernel(KERNEL_SIZE, vector<int>(KERNEL_SIZE, 0));
+	vector< vector<int> > kernel (KERNEL_SIZE, vector<int>(KERNEL_SIZE,0));
 
-	if (x > 0 && y > 0 && x < imageRowsIndex && y < imageColsIndex) {
-		for (int i = 0; i < KERNEL_SIZE; i++) {
-			for (int j = 0; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+	if (x > 0 && y > 0 && x < imageRowsIndex && y < imageColsIndex)
+	{
+		for(int i = 0; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
 			}
 		}
-	} else if (x == 0 && y > 0 && x < imageRowsIndex && y < imageColsIndex) {
-		for (int i = 1; i < KERNEL_SIZE; i++) {
-			for (int j = 0; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+	} else if (x == 0 && y > 0 && x < imageRowsIndex && y < imageColsIndex)
+	{
+		for(int i = 1; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
 			}
 		}
-	} else if (x == 0 && y == 0 && x < imageRowsIndex && y < imageColsIndex) {
-		for (int i = 1; i < KERNEL_SIZE; i++) {
-			for (int j = 1; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+	} else if (x == 0 && y == 0 && x < imageRowsIndex && y < imageColsIndex)
+	{
+		for(int i = 1; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=1; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
 			}
 		}
-	} else if (x > 0 && y == 0 && x < imageRowsIndex && y < imageColsIndex) {
-		for (int i = 0; i < KERNEL_SIZE; i++) {
-			for (int j = 1; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+	} else if (x > 0 && y == 0 && x < imageRowsIndex && y < imageColsIndex)
+	{
+		for(int i = 0; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=1; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
 			}
 		}
-	} else if (x == imageRowsIndex && y < imageColsIndex) {
-		for (int i = 0; i < KERNEL_SIZE - 1; i++) {
-			for (int j = 0; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+	} else if (x == imageRowsIndex && y < imageColsIndex)
+	{
+		for(int i = 0; i < KERNEL_SIZE-1; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
 			}
 		}
-	} else if (x == imageRowsIndex && y == 0) {
-		for (int i = 0; i < KERNEL_SIZE - 1; i++) {
-			for (int j = 1; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+	} else if (x == imageRowsIndex && y == 0)
+	{
+		for(int i = 0; i < KERNEL_SIZE-1; i++ )
+		{
+			for (int j=1; j < KERNEL_SIZE; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
 			}
 		}
-	} else if (x == imageRowsIndex && y == imageColsIndex) {
-		for (int i = 0; i < KERNEL_SIZE - 1; i++) {
-			for (int j = 0; j < KERNEL_SIZE - 1; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+	} else if (x == imageRowsIndex && y == imageColsIndex)
+	{
+		for(int i = 0; i < KERNEL_SIZE-1; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE-1; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
 			}
 		}
-	} else if (x == 0 && y == imageColsIndex) {
-		for (int i = 1; i < KERNEL_SIZE; i++) {
-			for (int j = 0; j < KERNEL_SIZE - 1; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+	} else if (x == 0 && y == imageColsIndex)
+	{
+		for(int i = 1; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE-1; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
 			}
 		}
-	} else if (x < imageRowsIndex && y == imageColsIndex) {
-		for (int i = 0; i < KERNEL_SIZE; i++) {
-			for (int j = 0; j < KERNEL_SIZE - 1; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+	} else if (x < imageRowsIndex && y == imageColsIndex)
+	{
+		for(int i = 0; i < KERNEL_SIZE; i++ )
+		{
+			for (int j=0; j < KERNEL_SIZE-1; j++)
+			{
+				kernel[i][j] = image[(x-1)+i][(y-1)+j];
 			}
 		}
 	}
@@ -134,16 +165,17 @@ vector< vector<int> > prepareKernel(int &x, int &y, vector< vector<int> > &image
 
 }
 
+int threshold = 20;
 int sobelFilter (int x, int y, vector< vector<int> > &image)
 {
 	//prepare data;
-	vector<vector<int> > dataToFilter = prepareKernel(x, y, image);
+	vector< vector<int> > dataToFilter = prepareKernel(x,y, image);
 
 	// printImageArray(dataToFilter);
 
 	//Sobel's algorithm is quite simple, we just add
 	//the derivatives in x and y (called gradient magnitude)
-	int x0, x1, x2, x3, x5, x6, x7, x8;
+	int x0,x1,x2,x3,x5,x6,x7,x8;
 	x0 = dataToFilter[0][0];
 	x1 = dataToFilter[0][1];
 	x2 = dataToFilter[0][2];
@@ -153,38 +185,55 @@ int sobelFilter (int x, int y, vector< vector<int> > &image)
 	x7 = dataToFilter[2][1];
 	x8 = dataToFilter[2][2];
 
-	int dfdy = (x0 + 2 * x1 + x2) - (x6 + 2 * x7 + x8);
-	int dfdx = (x2 + 2 * x5 + x8) - (x0 + 2 * x3 + x6);
+	int dfdy = (x0 + 2*x1 +x2) - (x6 + 2*x7 + x8);
+	int dfdx = (x2 + 2*x5 +x8) - (x0 + 2*x3 + x6);
 
 	int gradient = abs(dfdy) + abs(dfdx);
 
 	//the actual filter:
-	if (gradient < threshold) {
+	if(gradient < threshold)
+	{
 		return 0;
 	} else {
 		return 255;
 	}
 }
 
-header_type header;
-information_type information;
-string imageFileName, newImageFileName;
-unsigned char tempData[3];
-int row, col, row_bytes, padding;
-vector <vector <int> > data, newData;
-ifstream imageFile;
-ofstream newImageFile;
+int main(int argc, char* argv[])
+{
+	header_type header;
+	information_type information;
+	string imageFileName, newImageFileName, strThreshold;
+	unsigned char tempData[3];
+	int row, col, row_bytes, padding;
+	vector <vector <int> > data, newData;
 
-struct index_limits {
-    int lower_index;
-    int higher_index;
-};
+	// prepare files
+	cout << "Original imagefile? ";
+	cin >> imageFileName;
+	ifstream imageFile;
+	imageFile.open (imageFileName.c_str(), ios::binary);
+	if (!imageFile) {
+		cerr << "file not found" << endl;
+		exit(-1);
+	}
+	cout << "New imagefile name? ";
+	cin >> newImageFileName;
+	ofstream newImageFile;
+	newImageFile.open (newImageFileName.c_str(), ios::binary);
 
-void *ProcessData(void *arg) {
-	struct index_limits *limits = (struct index_limits *)arg;
+	// read file header
+	imageFile.read ((char *) &header, sizeof(header_type));
+	if (header.id[0] != 'B' || header.id[1] != 'M') {
+		cerr << "Does not appear to be a .bmp file.  Goodbye." << endl;
+		exit(-1);
+	}
 
-	cout << "test for receiving an argument Limits: lower" << limits->lower_index << " higher: ";
-	cout << limits->higher_index <<  endl;
+	//ask for threshold
+	cout << "threshold? ";
+	cin >> strThreshold;
+	threshold = atoi(strThreshold.c_str());
+
 	// read/compute image information
 	imageFile.read ((char *) &information, sizeof(information_type));
 	row_bytes = information.width * 3;
@@ -243,58 +292,6 @@ void *ProcessData(void *arg) {
 	cout << newImageFileName << " done." << endl;
 	imageFile.close();
 	newImageFile.close();
-}
-
-int main(int argc, char* argv[])
-{
-	string strThreshold, strNumThreads;
-	// prepare files
-	cout << "Original imagefile? ";
-	cin >> imageFileName;
-	imageFile.open(imageFileName.c_str(), ios::binary);
-	if (!imageFile) {
-		cerr << "file not found" << endl;
-		exit(-1);
-	}
-	cout << "New imagefile name? ";
-	cin >> newImageFileName;
-	newImageFile.open(newImageFileName.c_str(), ios::binary);
-
-	// read file header
-	imageFile.read((char *) &header, sizeof(header_type));
-	if (header.id[0] != 'B' || header.id[1] != 'M') {
-		cerr << "Does not appear to be a .bmp file.  Goodbye." << endl;
-		exit(-1);
-	}
-
-	//Request threshold
-	cout << "Threshold? ";
-	cin >> strThreshold;
-	threshold = atoi(strThreshold.c_str());
-
-	//Request number of threads
-	cout << "Number of threads? ";
-	cin >> strNumThreads;
-	numThreads = atoi(strNumThreads.c_str());
-
-	pthread_t threads[numThreads];
-	  int rc;
-	  long t;
-	  for(t=0; t<numThreads; t++){
-	    printf("In main: creating thread %ld\n", t);
-	    struct index_limits args;
-	    args.lower_index = 10;
-	    args.higher_index = 15;
-
-	    rc = pthread_create(&threads[t], NULL, ProcessData, (void *)&args);
-	    if (rc){
-	      printf("ERROR; return code from pthread_create() is %d\n", rc);
-	      exit(-1);
-	    }
-	  }
-
-	  /* Last thing that main() should do */
-	  pthread_exit(NULL);
 
 	return 0;
 }
