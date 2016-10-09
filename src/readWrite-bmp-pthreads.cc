@@ -6,7 +6,7 @@
 // gw
 
 // uncomment for MSVS
-//#include "stdafx.h"
+// #include "stdafx.h"
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -14,15 +14,15 @@
 #include <vector>
 #include <cmath>
 #include <ctime>
-#include <pthread.h>
-#include <stdio.h>
+#include <omp.h>
 
-//#include <omp.h>
+#define WIDTH					3
+#define HEIGHT				3
+#define DEBUG					1
+#define KERNEL_SIZE		3
 
-#define WIDTH        3
-#define HEIGHT       3
-#define DEBUG        1
-#define NUM_THREADS  1
+int numThreads = 1;
+int threshold = 20;
 
 using namespace std;
 
@@ -69,7 +69,6 @@ void printImageArray(vector< vector<int> > &image)
 	cout << endl << endl;
 }
 
-#define KERNEL_SIZE 3
 vector< vector<int> > prepareKernel(int &x, int &y, vector< vector<int> > &image)
 {
 	int imageRowsIndex = image.size() - 1;
@@ -164,7 +163,6 @@ vector< vector<int> > prepareKernel(int &x, int &y, vector< vector<int> > &image
 
 }
 
-int threshold = 20;
 int sobelFilter (int x, int y, vector< vector<int> > &image)
 {
 	//prepare data;
@@ -198,85 +196,17 @@ int sobelFilter (int x, int y, vector< vector<int> > &image)
 	}
 }
 
-information_type information;
-vector <vector <int> > data, newData;
-int row, col;
 header_type header;
-string imageFileName, newImageFileName, strThreshold;
+information_type information;
+string imageFileName, newImageFileName;
 unsigned char tempData[3];
-int row_bytes, padding;
+int row, col, row_bytes, padding;
+vector <vector <int> > data, newData;
 ifstream imageFile;
 ofstream newImageFile;
 
 void *ProcessData(void *threadid)
 {
-  // this loop shows how to simply recreate the original Black-and-White image
-  for (row=0; row < information.height; row++) {
-  	newData.push_back (vector <int>());
-  	for (col=0; col < information.width; col++) {
-			cout << "row: " << row << " - col:  " << col << endl;
-  		newData[row].push_back (sobelFilter(row,col,data));
-  	}
-  }
-	// this loop shows how to simply recreate the original Black-and-White image
-		for (row=0; row < information.height; row++) {
-			newData.push_back (vector <int>());
-			for (col=0; col < information.width; col++) {
-				newData[row].push_back (sobelFilter(row,col,data));
-			}
-		}
-
-		// write header to new image file
-		newImageFile.write ((char *) &header, sizeof(header_type));
-		newImageFile.write ((char *) &information, sizeof(information_type));
-
-		// write new image data to new image file
-		for (row=0; row < information.height; row++) {
-			for (col=0; col < information.width; col++) {
-				tempData[0] = (unsigned char) newData[row][col];
-				tempData[1] = (unsigned char) newData[row][col];
-				tempData[2] = (unsigned char) newData[row][col];
-				newImageFile.write ((char *) tempData, 3 * sizeof(unsigned char));
-			}
-			if (padding) {
-				tempData[0] = 0;
-				tempData[1] = 0;
-				tempData[2] = 0;
-				newImageFile.write ((char *) tempData, padding * sizeof(unsigned char));
-			}
-		}
-
-		cout << newImageFileName << " done." << endl;
-		imageFile.close();
-		newImageFile.close();
-}
-
-int main(int argc, char* argv[])
-{
-	// prepare files
-	cout << "Original imagefile? ";
-	cin >> imageFileName;
-	imageFile.open (imageFileName.c_str(), ios::binary);
-	if (!imageFile) {
-		cerr << "file not found" << endl;
-		exit(-1);
-	}
-	cout << "New imagefile name? ";
-	cin >> newImageFileName;
-	newImageFile.open (newImageFileName.c_str(), ios::binary);
-
-	// read file header
-	imageFile.read ((char *) &header, sizeof(header_type));
-	if (header.id[0] != 'B' || header.id[1] != 'M') {
-		cerr << "Does not appear to be a .bmp file.  Goodbye." << endl;
-		exit(-1);
-	}
-
-	//ask for threshold
-	cout << "threshold? ";
-	cin >> strThreshold;
-	threshold = atoi(strThreshold.c_str());
-
 	// read/compute image information
 	imageFile.read ((char *) &information, sizeof(information_type));
 	row_bytes = information.width * 3;
@@ -305,10 +235,74 @@ int main(int argc, char* argv[])
 // if you with to use this C++ skeleton program for image wrangling,
 // insert your transformation code here...
 
-  pthread_t threads[NUM_THREADS];
+// this loop shows how to simply recreate the original Black-and-White image
+	for (row=0; row < information.height; row++) {
+		newData.push_back (vector <int>());
+		for (col=0; col < information.width; col++) {
+			newData[row].push_back (/*data[row][col]*/sobelFilter(row,col,data));
+		}
+	}
+
+	// write header to new image file
+	newImageFile.write ((char *) &header, sizeof(header_type));
+	newImageFile.write ((char *) &information, sizeof(information_type));
+
+	// write new image data to new image file
+	for (row=0; row < information.height; row++) {
+		for (col=0; col < information.width; col++) {
+			tempData[0] = (unsigned char) newData[row][col];
+			tempData[1] = (unsigned char) newData[row][col];
+			tempData[2] = (unsigned char) newData[row][col];
+			newImageFile.write ((char *) tempData, 3 * sizeof(unsigned char));
+		}
+		if (padding) {
+			tempData[0] = 0;
+			tempData[1] = 0;
+			tempData[2] = 0;
+			newImageFile.write ((char *) tempData, padding * sizeof(unsigned char));
+		}
+	}
+	cout << newImageFileName << " done." << endl;
+	imageFile.close();
+	newImageFile.close();
+}
+
+int main(int argc, char* argv[])
+{
+	string strThreshold, strNumThreads;
+	// prepare files
+	cout << "Original imagefile? ";
+	cin >> imageFileName;
+	imageFile.open (imageFileName.c_str(), ios::binary);
+	if (!imageFile) {
+		cerr << "file not found" << endl;
+		exit(-1);
+	}
+	cout << "New imagefile name? ";
+	cin >> newImageFileName;
+	newImageFile.open (newImageFileName.c_str(), ios::binary);
+
+	// read file header
+	imageFile.read ((char *) &header, sizeof(header_type));
+	if (header.id[0] != 'B' || header.id[1] != 'M') {
+		cerr << "Does not appear to be a .bmp file.  Goodbye." << endl;
+		exit(-1);
+	}
+
+	//Request threshold
+	cout << "Threshold? ";
+	cin >> strThreshold;
+	threshold = atoi(strThreshold.c_str());
+
+	//Request number of threads
+	cout << "Number of threads? ";
+	cin >> strNumThreads;
+	numThreads = atoi(strNumThreads.c_str());
+
+	pthread_t threads[numThreads];
   int rc;
   long t;
-  for(t=0; t<NUM_THREADS; t++){
+  for(t=0; t<numThreads; t++){
     printf("In main: creating thread %ld\n", t);
     rc = pthread_create(&threads[t], NULL, ProcessData, (void *)t);
     if (rc){
