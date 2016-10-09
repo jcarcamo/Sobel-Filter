@@ -1,4 +1,5 @@
 src/*.o
 src/readWrite-bmp
+src/readWrite-bmp-threaded
 src/*.bmp
 output/*.bmp
