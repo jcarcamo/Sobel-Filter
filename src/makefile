@@ -2,8 +2,8 @@ OBJS = readWrite-bmp.o
 OBJS2 = readWrite-bmp-pthreads.o
 CC = g++
 DEBUG = -g
-CFLAGS = -Wall -c $(DEBUG) -pthread 
-LFLAGS = -Wall $(DEBUG) -lpthread
+CFLAGS = -Wall -c $(DEBUG) -pthread -std=c++11 
+LFLAGS = -Wall $(DEBUG) -lpthread -lgomp
 
 non-threaded :
 	make readWrite-bmp.o
