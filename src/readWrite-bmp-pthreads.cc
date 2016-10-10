@@ -235,7 +235,7 @@ void *ProcessData(void *arg) {
 
 	printf("Thread ID: %d - Using clock Elapsed time: %f \n", limits->threadId, secsElapsed_clock);
 	printf("Thread ID: %d - Using omp_get_wtime Elapsed time: %f \n", limits->threadId, secsElapsed_omp);
-	printf("Thread ID: %d - Using HighRes Elapsed time: %lld \n", limits->threadId, secsElapsed_high);
+	printf("Thread ID: %d - Using HighRes Elapsed time: %ld \n", limits->threadId, secsElapsed_high);
 
 	return NULL;
 }
@@ -352,7 +352,7 @@ int main(int argc, char* argv[])
 
 	printf("General threaded processing time - Using clock Elapsed time: %f \n", secsElapsed_clock);
 	printf("General threaded processing time - Using omp_get_wtime Elapsed time: %f \n", secsElapsed_omp);
-	printf("General threaded processing time - Using HighRes Elapsed time: %lld \n", secsElapsed_high);
+	printf("General threaded processing time - Using HighRes Elapsed time: %ld \n", secsElapsed_high);
 
 	// write header to new image file
 	newImageFile.write ((char *) &header, sizeof(header_type));
