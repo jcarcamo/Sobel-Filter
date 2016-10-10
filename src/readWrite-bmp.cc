@@ -14,13 +14,16 @@
 #include <vector>
 #include <cmath>
 #include <ctime>
+#include <time.h>
 #include <omp.h>
+#include <chrono>
 
 #define WIDTH 3
 #define HEIGHT 3
 #define DEBUG 1
 
 using namespace std;
+using namespace std::chrono;
 
 #pragma pack(1)
 typedef struct {
@@ -257,6 +260,10 @@ int main(int argc, char* argv[])
 // if you with to use this C++ skeleton program for image wrangling,
 // insert your transformation code here...
 
+	clock_t clock_time = clock();
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+	double startTime = omp_get_wtime();
+
 // this loop shows how to simply recreate the original Black-and-White image
 	for (row=0; row < information.height; row++) {
 		newData.push_back (vector <int>());
@@ -264,6 +271,18 @@ int main(int argc, char* argv[])
 			newData[row].push_back (/*data[row][col]*/sobelFilter(row,col,data));
 		}
 	}
+
+	clock_time = clock() - clock_time;
+	double stopTime = omp_get_wtime();
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+
+	float secsElapsed_clock = (float)clock_time/CLOCKS_PER_SEC;
+	double secsElapsed_omp = stopTime - startTime;
+	auto secsElapsed_high = duration_cast<microseconds>(t2-t1).count();
+
+	printf("General threaded processing time - Using clock Elapsed time: %f \n", secsElapsed_clock);
+	printf("General threaded processing time - Using omp_get_wtime Elapsed time: %f \n", secsElapsed_omp);
+	printf("General threaded processing time - Using HighRes Elapsed time: %lld \n", secsElapsed_high);
 
 	// write header to new image file
 	newImageFile.write ((char *) &header, sizeof(header_type));
