@@ -252,19 +252,19 @@ int main(int argc, char* argv[])
 	cout << imageFileName << ": " << information.width << " x " << information.height << endl;
 
 
-// pixel info is now stored in the 2D vector called 'data'
-// at this point you could, for example, print it to a file
-// your code (in any language) could then perform the image transformation
-// the transformed data would need to be re-inserted into an image-formatted file for display
+	// pixel info is now stored in the 2D vector called 'data'
+	// at this point you could, for example, print it to a file
+	// your code (in any language) could then perform the image transformation
+	// the transformed data would need to be re-inserted into an image-formatted file for display
 
-// if you with to use this C++ skeleton program for image wrangling,
-// insert your transformation code here...
+	// if you with to use this C++ skeleton program for image wrangling,
+	// insert your transformation code here...
 
 	clock_t clock_time = clock();
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 	double startTime = omp_get_wtime();
 
-// this loop shows how to simply recreate the original Black-and-White image
+	// this loop shows how to simply recreate the original Black-and-White image
 	for (row=0; row < information.height; row++) {
 		newData.push_back (vector <int>());
 		for (col=0; col < information.width; col++) {
