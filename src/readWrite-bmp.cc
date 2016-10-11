@@ -282,7 +282,7 @@ int main(int argc, char* argv[])
 
 	printf("General threaded processing time - Using clock Elapsed time: %f \n", secsElapsed_clock);
 	printf("General threaded processing time - Using omp_get_wtime Elapsed time: %f \n", secsElapsed_omp);
-	printf("General threaded processing time - Using HighRes Elapsed time: %lld \n", secsElapsed_high);
+	printf("General threaded processing time - Using HighRes Elapsed time: %ld \n", secsElapsed_high);
 
 	// write header to new image file
 	newImageFile.write ((char *) &header, sizeof(header_type));
