@@ -243,18 +243,39 @@ void *ProcessData(void *arg) {
 int main(int argc, char* argv[])
 {
 	string strThreshold, strNumThreads;
-	// prepare files
-	cout << "Original imagefile? ";
-	cin >> imageFileName;
+	
+	if ( argc == 1 ) {
+		// prepare files
+		cout << "Original imagefile? ";
+		cin >> imageFileName;
+		
+		cout << "New imagefile name? ";
+		cin >> newImageFileName;
+
+		cout << "Threshold? ";
+		cin >> strThreshold;
+
+		//Request number of threads
+		cout << "Number of threads? ";
+		cin >> strNumThreads;
+	} else if ( argc==5 ) {
+		imageFileName = argv[1];
+		newImageFileName = argv[2];
+		strThreshold=argv[3];
+		strNumThreads=argv[4];
+	} else {
+		cout << "Usage: "<< endl<<"./readWrite-bmp-threaded [<original image path> <new image name> <threshold> <# of threads>]"<<endl;
+		return 1;
+	}
+		
+
 	imageFile.open(imageFileName.c_str(), ios::binary);
 
-	if (!imageFile) {
-		cerr << "file not found" << endl;
-		exit(-1);
-	}
-	cout << "New imagefile name? ";
-	cin >> newImageFileName;
-
+        if (!imageFile) {
+                cerr << "file not found" << endl;
+                exit(-1);
+        }
+	
 	newImageFile.open(newImageFileName.c_str(), ios::binary);
 
 	// read file header
@@ -264,14 +285,8 @@ int main(int argc, char* argv[])
 		exit(-1);
 	}
 
-	//Request threshold
-	cout << "Threshold? ";
-	cin >> strThreshold;
 	threshold = atoi(strThreshold.c_str());
 
-	//Request number of threads
-	cout << "Number of threads? ";
-	cin >> strNumThreads;
 	numThreads = atoi(strNumThreads.c_str());
 
 	// read/compute image information
