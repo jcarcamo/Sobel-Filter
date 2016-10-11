@@ -205,31 +205,45 @@ int main(int argc, char* argv[])
 	unsigned char tempData[3];
 	int row, col, row_bytes, padding;
 	vector <vector <int> > data, newData;
+	
+	if ( argc == 1 ) {
+		// prepare files
+		cout << "Original imagefile? ";
+		cin >> imageFileName;
+		
+		cout << "New imagefile name? ";
+		cin >> newImageFileName;
 
-	// prepare files
-	cout << "Original imagefile? ";
-	cin >> imageFileName;
-	ifstream imageFile;
-	imageFile.open (imageFileName.c_str(), ios::binary);
-	if (!imageFile) {
-		cerr << "file not found" << endl;
-		exit(-1);
+		cout << "Threshold? ";
+		cin >> strThreshold;
+
+	} else if ( argc==4 ) {
+		imageFileName = argv[1];
+		newImageFileName = argv[2];
+		strThreshold=argv[3];
+	} else {
+		cout << "Usage: "<< endl<<"./readWrite-bmp [<original image path> <new image name> <threshold>]"<<endl;
+		return 1;
 	}
-	cout << "New imagefile name? ";
-	cin >> newImageFileName;
+		
+	ifstream imageFile;
+	imageFile.open(imageFileName.c_str(), ios::binary);
+
+        if (!imageFile) {
+                cerr << "file not found" << endl;
+                exit(-1);
+        }
+	
 	ofstream newImageFile;
-	newImageFile.open (newImageFileName.c_str(), ios::binary);
+	newImageFile.open(newImageFileName.c_str(), ios::binary);
 
 	// read file header
-	imageFile.read ((char *) &header, sizeof(header_type));
+	imageFile.read((char *) &header, sizeof(header_type));
 	if (header.id[0] != 'B' || header.id[1] != 'M') {
 		cerr << "Does not appear to be a .bmp file.  Goodbye." << endl;
 		exit(-1);
 	}
 
-	//ask for threshold
-	cout << "threshold? ";
-	cin >> strThreshold;
 	threshold = atoi(strThreshold.c_str());
 
 	// read/compute image information
