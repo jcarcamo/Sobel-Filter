@@ -23,13 +23,10 @@
 #define DEBUG	1
 #define KERNEL_SIZE	3
 
-int numThreads = 1;
 int threshold = 20;
 
 using namespace std;
 using namespace std::chrono;
-
-
 
 #pragma pack(1)
 typedef struct {
@@ -39,8 +36,6 @@ typedef struct {
 	int offset;
 
 } header_type;
-
-
 
 #pragma pack(1)
 typedef struct {
@@ -77,67 +72,74 @@ void printImageArray(vector<vector<int> > &image)
 	cout << endl << endl;
 }
 
-vector< vector<int> > prepareKernel(int &x, int &y, vector< vector<int> > &image)
+unsigned char tempData[3];
+int row, col, row_bytes, padding;
+vector <vector <int> > data, newData;
+
+ifstream imageFile;
+ofstream newImageFile;
+
+vector< vector<int> > prepareKernel(int x, int y/*, vector< vector<int> > &image*/)
 {
 
-	int imageRowsIndex = image.size() - 1;
-	int imageColsIndex = image[0].size() - 1;
+	int imageRowsIndex = data.size() - 1;
+	int imageColsIndex = data[0].size() - 1;
 
 	vector<vector<int> > kernel(KERNEL_SIZE, vector<int>(KERNEL_SIZE, 0));
 
 	if (x > 0 && y > 0 && x < imageRowsIndex && y < imageColsIndex) {
 		for (int i = 0; i < KERNEL_SIZE; i++) {
 			for (int j = 0; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+				kernel[i][j] = data[(x - 1) + i][(y - 1) + j];
 			}
 
 		}
 	} else if (x == 0 && y > 0 && x < imageRowsIndex && y < imageColsIndex) {
 		for (int i = 1; i < KERNEL_SIZE; i++) {
 			for (int j = 0; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+				kernel[i][j] = data[(x - 1) + i][(y - 1) + j];
 			}
 		}
 	} else if (x == 0 && y == 0 && x < imageRowsIndex && y < imageColsIndex) {
 		for (int i = 1; i < KERNEL_SIZE; i++) {
 			for (int j = 1; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+				kernel[i][j] = data[(x - 1) + i][(y - 1) + j];
 			}
 		}
 	} else if (x > 0 && y == 0 && x < imageRowsIndex && y < imageColsIndex) {
 		for (int i = 0; i < KERNEL_SIZE; i++) {
 			for (int j = 1; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+				kernel[i][j] = data[(x - 1) + i][(y - 1) + j];
 			}
 		}
-	} else if (x == imageRowsIndex && y < imageColsIndex) {
+	} /*else if (x == imageRowsIndex && y < imageColsIndex) {
 		for (int i = 0; i < KERNEL_SIZE - 1; i++) {
 			for (int j = 0; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+				kernel[i][j] = data[(x - 1) + i][(y - 1) + j];
 			}
 		}
-	} else if (x == imageRowsIndex && y == 0) {
+	}*/ else if (x == imageRowsIndex && y == 0) {
 		for (int i = 0; i < KERNEL_SIZE - 1; i++) {
 			for (int j = 1; j < KERNEL_SIZE; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+				kernel[i][j] = data[(x - 1) + i][(y - 1) + j];
 			}
 		}
 	} else if (x == imageRowsIndex && y == imageColsIndex) {
 		for (int i = 0; i < KERNEL_SIZE - 1; i++) {
 			for (int j = 0; j < KERNEL_SIZE - 1; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+				kernel[i][j] = data[(x - 1) + i][(y - 1) + j];
 			}
 		}
 	} else if (x == 0 && y == imageColsIndex) {
 		for (int i = 1; i < KERNEL_SIZE; i++) {
 			for (int j = 0; j < KERNEL_SIZE - 1; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+				kernel[i][j] = data[(x - 1) + i][(y - 1) + j];
 			}
 		}
 	} else if (x < imageRowsIndex && y == imageColsIndex) {
 		for (int i = 0; i < KERNEL_SIZE; i++) {
 			for (int j = 0; j < KERNEL_SIZE - 1; j++) {
-				kernel[i][j] = image[(x - 1) + i][(y - 1) + j];
+				kernel[i][j] = data[(x - 1) + i][(y - 1) + j];
 			}
 		}
 	}
@@ -147,13 +149,11 @@ vector< vector<int> > prepareKernel(int &x, int &y, vector< vector<int> > &image
 
 
 
-int sobelFilter (int x, int y, vector< vector<int> > &image)
+int sobelFilter (int x, int y/*, vector< vector<int> > &image*/)
 
 {
 	//prepare data;
-	vector<vector<int> > dataToFilter = prepareKernel(x, y, image);
-
-	// printImageArray(dataToFilter);
+	vector<vector<int> > dataToFilter = prepareKernel(x, y/*, image*/);
 
 	//Sobel's algorithm is quite simple, we just add
 	//the derivatives in x and y (called gradient magnitude)
@@ -180,17 +180,6 @@ int sobelFilter (int x, int y, vector< vector<int> > &image)
 	}
 }
 
-header_type header;
-information_type information;
-string imageFileName, newImageFileName;
-
-unsigned char tempData[3];
-int row, col, row_bytes, padding;
-vector <vector <int> > data, newData;
-
-ifstream imageFile;
-ofstream newImageFile;
-
 struct index_limits {
 	int lower_index;
 	int higher_index;
@@ -204,24 +193,21 @@ void *ProcessData(void *arg) {
 
 	struct index_limits *limits = (struct index_limits *)arg;
 
-	cout << "test for receiving an argument Limits: lower" << limits->lower_index << " higher: ";
-	cout << limits->higher_index <<  endl;
-
 	int lower_index = limits->lower_index;
 	int higher_index = limits->higher_index;
 
-	if(lower_index > information.height){
-		lower_index = information.height;
+	if((size_t)lower_index > data.size()){
+		lower_index = data.size();
 	}
 
-	if(higher_index > information.height){
-		higher_index = information.height;
+	if((size_t)higher_index > data.size()){
+		higher_index = data.size();
 	}
-
+	printf("Thread id %d lower_index:%d higher_index%d\n",limits->threadId, lower_index, higher_index);
 	// this loop shows how to simply recreate the original Black-and-White image
-	for (row=lower_index; row < higher_index; row++) {
-		for (col=0; col < information.width; col++) {
-			newData[row][col] = sobelFilter(row,col,data);
+	for (int row=lower_index; row < higher_index; row++) {
+		for (int col=0; (size_t)col < data[0].size(); col++) {
+			newData[row][col] = sobelFilter(row,col);
 		}
 	}
 
@@ -242,6 +228,11 @@ void *ProcessData(void *arg) {
 
 int main(int argc, char* argv[])
 {
+	int numThreads = 1;
+	string imageFileName, newImageFileName;
+	header_type header;
+	information_type information;
+
 	string strThreshold, strNumThreads;
 	
 	if ( argc == 1 ) {
