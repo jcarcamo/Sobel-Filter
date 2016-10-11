@@ -30,5 +30,5 @@ all :
 	make threaded
 
 clean:
-	\rm -f *.o *~ readWrite-bmp readWrite-bmp-threaded 
+	\rm -f *.o *.bmp  *~ readWrite-bmp readWrite-bmp-threaded 
 
