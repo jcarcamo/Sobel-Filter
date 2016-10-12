@@ -50,62 +50,62 @@ typedef struct {
 	int num_important_colors;
 } information_type;
 
-// float filter[WIDTH][HEIGHT];
+float filter[WIDTH][HEIGHT];
 
-// int result(int x, int y, vector <vector <int> > &image)
-// {
-// 	int n = WIDTH; //size of the filter
-// 	int result = 0;
-// 	// if( x == 0 || y == 0 || x == image.size() || y == image[0].size()){
-// 	// 	int paddedRowSize = image.size()+2;
-// 	// 	int paddedColSize = image[0].size()+2;
-// 	// 	vector< vector <int> > paddedImage (paddedRowSize, vector<int>(paddedColSize));
-// 	// 	for (int i = 0; i < paddedRowSize; i++)
-// 	// 	{
-// 	// 		for (int j = 0; j < paddedColSize ; j++)
-// 	// 		{
-// 	// 			if(i == 0)
-// 	// 			{
-// 	// 				paddedImage[i][j] = 0;
-// 	// 			}
-// 	// 			if(j == 0)
-// 	// 			{
-// 	// 				paddedImage[i][j] = 0;
-// 	// 			}
-// 	// 		}
-// 	// 	}
-// 	// }
-// 	int newX = 0, newY = 0;
-// 	int imageWidth = image.size();
-// 	int imageHeight = image[0].size();
-//
-// 	for (int i = 0; i < n; i++)
-// 	{
-// 		newX = (x-1) + i;
-// 		for (int j = 0; j < n; j++)
-// 		{
-//
-// 			// float imageX = x-floor(n/2)+i;
-// 			// int newX = (imageX >= 0) ? (int)(imageX + 0.5) : (int)(imageX - 0.5);
-// 			// float imageY = y-floor(n/2)+j;
-// 			// int newY = (imageY >= 0) ? (int)(imageY + 0.5) : (int)(imageY - 0.5);
-// 			newY = (y-1) + j;
-// 			cout << "x" << newX << "y" << newY << endl;
-// 			if ((newX >= 0 && newY >= 0) && (newX < imageWidth && newY < imageHeight)){
-// 				result += filter[i][j]*image[newX][newY];
-// 				if (DEBUG)
-// 				{
-// 					cout << "filter[" << i <<"]["<< j <<"] = " << filter[i][j] <<endl;
-// 					cout << "image["<<x<<"-("<<n<<"/2)+"<<i<<" = "<< newX << "]["<< y << "-("<<n<<"/2)+";
-// 					cout << j <<" = "<< newY << "] = "<< image[newX][newY];
-// 					cout << "Partial Result = " << result << endl;
-// 				}
-// 			}
-// 		}
-// 	}
-// 	cout << "Total Result = " << result << endl;
-// 	return result;
-// }
+int convoluted(int x, int y, vector <vector <int> > &image)
+{
+ 	int n = WIDTH; //size of the filter
+ 	int result = 0;
+ 	// if( x == 0 || y == 0 || x == image.size() || y == image[0].size()){
+ 	// 	int paddedRowSize = image.size()+2;
+ 	// 	int paddedColSize = image[0].size()+2;
+ 	// 	vector< vector <int> > paddedImage (paddedRowSize, vector<int>(paddedColSize));
+ 	// 	for (int i = 0; i < paddedRowSize; i++)
+ 	// 	{
+ 	// 		for (int j = 0; j < paddedColSize ; j++)
+ 	// 		{
+ 	// 			if(i == 0)
+ 	// 			{
+ 	// 				paddedImage[i][j] = 0;
+ 	// 			}
+ 	// 			if(j == 0)
+ 	// 			{
+ 	// 				paddedImage[i][j] = 0;
+ 	// 			}
+ 	// 		}
+ 	// 	}
+ 	// }
+ 	int newX = 0, newY = 0;
+ 	int imageWidth = image.size();
+ 	int imageHeight = image[0].size();
+
+ 	for (int i = 0; i < n; i++)
+ 	{
+ 		newX = (x-1) + i;
+ 		for (int j = 0; j < n; j++)
+ 		{
+ 			// float imageX = x-floor(n/2)+i;
+ 			// int newX = (imageX >= 0) ? (int)(imageX + 0.5) : (int)(imageX - 0.5);
+ 			// float imageY = y-floor(n/2)+j;
+ 			// int newY = (imageY >= 0) ? (int)(imageY + 0.5) : (int)(imageY - 0.5);
+ 			newY = (y-1) + j;
+ 			//cout << "x" << newX << "y" << newY << endl;
+ 			if ((newX >= 0 && newY >= 0) && (newX < imageWidth && newY < imageHeight)){
+ 				result += filter[i][j]*image[newX][newY];
+ 				if (DEBUG)
+ 				{
+ 					//cout << "filter[" << i <<"]["<< j <<"] = " << filter[i][j] <<endl;
+ 					//cout << "image["<<x<<"-("<<n<<"/2)+"<<i<<" = "<< newX << "]["<< y << "-("<<n<<"/2)+";
+ 					//cout << j <<" = "<< newY << "] = "<< image[newX][newY];
+ 					//cout << "Partial Result = " << result << endl;
+ 				}
+ 			}
+ 		}
+ 	}
+ 	//cout << "Total Result = " << result << endl;
+ 	return result;
+}
+
 int globalPrintCount = 0;
 void printImageArray(vector< vector<int> > &image)
 {
@@ -339,17 +339,17 @@ int main(int argc, char* argv[])
 	// testArray[4][3] = 53;
 	// testArray[4][4] = 236;
 
-	// filter[0][0] = -0.0625;
-	// filter[0][1] = -0.0625;
-	// filter[0][2] = -0.0625;
+	filter[0][0] = -0.0625;
+	filter[0][1] = -0.0625;
+	filter[0][2] = -0.0625;
 	//
-	// filter[1][0] = -0.0625;
-	// filter[1][1] =  0.5;
-	// filter[1][2] = -0.0625;
+	filter[1][0] = -0.0625;
+	filter[1][1] =  0.5;
+	filter[1][2] = -0.0625;
 	//
-	// filter[2][0] = -0.0625;
-	// filter[2][1] = -0.0625;
-	// filter[2][2] = -0.0625;
+	filter[2][0] = -0.0625;
+	filter[2][1] = -0.0625;
+	filter[2][2] = -0.0625;
 
 	// for (int i = 0; i < 5; i ++){
 	// 	cout << "Row "<< i << "[ ";
@@ -373,7 +373,12 @@ int main(int argc, char* argv[])
 	for (row=0; row < information.height; row++) {
 		newData.push_back (vector <int>());
 		for (col=0; col < information.width; col++) {
-			newData[row].push_back (/*data[row][col]*/sobelFilter(row,col,data));
+			int result = 0;
+			if(DEBUG)
+				result = convoluted(row,col,data);
+			else
+				result = sobelFilter(row,col,data);
+			newData[row].push_back (result);
 		}
 	}
 
